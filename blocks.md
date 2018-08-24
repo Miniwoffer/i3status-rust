@@ -7,9 +7,11 @@
 - [Disk Space](#disk-space)
 - [Focused Window](#focused-window)
 - [Load](#load)
+- [Maildir](#maildir)
 - [Memory](#memory)
 - [Music](#music)
 - [Net](#net)
+- [Nvidia Gpu](#nvidia-gpu)
 - [Pacman](#pacman)
 - [Sound](#sound)
 - [Speed Test](#speed-test)
@@ -18,6 +20,7 @@
 - [Toggle](#toggle)
 - [Weather](#weather)
 - [Xrandr](#xrandr)
+- [Maildir](#maildir)
 
 ## Backlight
 
@@ -99,6 +102,7 @@ Update CPU usage every second:
 [[block]]
 block = "cpu"
 interval = 1
+frequency = true
 ```
 
 ### Options
@@ -109,6 +113,7 @@ Key | Values | Required | Default
 `warning` | Minimum usage, where state is set to warning. | No | `60`
 `critical` | Minimum usage, where state is set to critical. | No | `90`
 `interval` | Update interval, in seconds. | No | `1`
+`frequency` | Shows avg cpu frequency in GHz | No | `false`
 
 ## Custom
 
@@ -138,7 +143,7 @@ Note that `command` and `cycle` are mutually exclusive.
 Key | Values | Required | Default
 ----|--------|----------|--------
 `command` | Shell command to execute & display. | No | None
-`on_click` | Command to execute when the button is clicked. | No | None
+`on_click` | Command to execute when the button is clicked. The command will be passed to whatever is specified in your `$SHELL` variable and - if not set - fallback to `sh`. | No | None
 `cycle` | Commands to execute and change when the button is clicked. | No | None
 `interval` | Update interval, in seconds. | No | `10`
 
@@ -164,9 +169,10 @@ Key | Values | Required | Default
 ----|--------|----------|--------
 `path` | Path to collect information from | No | `"/"`
 `alias` | Alias that is displayed for path | No | `"/"`
-`info_type` | Currently supported options are available and free | No | `"available"`
+`info_type` | Currently supported options are `available` and `free` | No | `"available"`
 `unit` | Unit that is used to display disk space. Options are MB, MiB, GB and GiB | No | `"GB"`
 `interval` | Update interval, in seconds. | No | `20`
+`show_percentage` | Show percentage of used/available disk space depending on info_type. | No | `false`
 
 ## Focused Window
 
@@ -207,6 +213,30 @@ Key | Values | Required | Default
 ----|--------|----------|--------
 `format` | Format string. You can use the placeholders 1m 5m and 15m, e.g. `"1min avg: {1m}"`. | No | `"{1m}"`
 `interval` | Update interval, in seconds. | No | `3`
+
+## Maildir
+
+Creates a block which shows unread mails. Only supports maildir format.
+
+### Examples
+
+```toml
+[[block]]
+block = "maildir"
+interval = 60
+inboxes = ["/home/user/mail/local", "/home/user/mail/gmail/Inbox"]
+threshold_warning = 1
+threshold_critical = 10
+```
+
+### Options
+
+Key | Values | Required | Default
+----|--------|----------|--------
+`inboxes` | List of maildir inboxes to look for mails in | Yes | None
+`threshold_warning` | Number of unread mails where state is set to warning | No | `1`
+`threshold_critical` | Number of unread mails where state is set to critical | No | `10`
+`interval` | Update interval, in seconds. | No | `5`
 
 ## Memory
 
@@ -250,40 +280,51 @@ Key | Values | Required | Default
 
 ### Format string specification
 
-Key | Value
-----|-------
-`{MTg}` | Memory total (GiB).
-`{MTm}` | Memory total (MiB).
-`{MAg}` | Available memory, including cached memory and buffers (GiB).
-`{MAm}` | Available memory, including cached memory and buffers (MiB).
-`{MAp}` | Available memory, including cached memory and buffers (%).
-`{MFg}` | Memory free (GiB).
-`{MFm}` | Memory free (MiB).
-`{MFp}` | Memory free (%).
-`{Mug}` | Memory used, excluding cached memory and buffers; similar to htop's green bar (GiB).
-`{Mum}` | Memory used, excluding cached memory and buffers; similar to htop's green bar (MiB).
-`{Mup}` | Memory used, excluding cached memory and buffers; similar to htop's green bar (%).
-`{MUg}` | Total memory used (GiB).
-`{MUm}` | Total memory used (MiB).
-`{MUp}` | Total memory used (%).
-`{Cg}`  | Cached memory, similar to htop's yellow bar (GiB).
-`{Cm}`  | Cached memory, similar to htop's yellow bar (MiB).
-`{Cp}`  | Cached memory, similar to htop's yellow bar (%).
-`{Bg}`  | Buffers, similar to htop's blue bar (GiB).
-`{Bm}`  | Buffers, similar to htop's blue bar (MiB).
-`{Bp}`  | Buffers, similar to htop's blue bar (%).
-`{STg}` | Swap total (GiB).
-`{STm}` | Swap total (MiB).
-`{SFg}` | Swap free (GiB).
-`{SFm}` | Swap free (MiB).
-`{SFp}` | Swap free (%).
-`{SUg}` | Swap used (GiB).
-`{SUm}` | Swap used (MiB).
-`{SUp}` | Swap used (%).
+  Key    | Value
+---------|-------
+`{MTg}`  | Memory total (GiB).
+`{MTm}`  | Memory total (MiB).
+`{MAg}`  | Available memory, including cached memory and buffers (GiB).
+`{MAm}`  | Available memory, including cached memory and buffers (MiB).
+`{MAp}`  | Available memory, including cached memory and buffers (%).
+`{MApi}` | Available memory, including cached memory and buffers (%) as integer.
+`{MFg}`  | Memory free (GiB).
+`{MFm}`  | Memory free (MiB).
+`{MFp}`  | Memory free (%).
+`{MFpi}` | Memory free (%) as integer.
+`{Mug}`  | Memory used, excluding cached memory and buffers; similar to htop's green bar (GiB).
+`{Mum}`  | Memory used, excluding cached memory and buffers; similar to htop's green bar (MiB).
+`{Mup}`  | Memory used, excluding cached memory and buffers; similar to htop's green bar (%).
+`{Mupi}` | Memory used, excluding cached memory and buffers; similar to htop's green bar (%) as integer.
+`{MUg}`  | Total memory used (GiB).
+`{MUm}`  | Total memory used (MiB).
+`{MUp}`  | Total memory used (%).
+`{MUpi}` | Total memory used (%) as integer.
+`{Cg}`   | Cached memory, similar to htop's yellow bar (GiB).
+`{Cm}`   | Cached memory, similar to htop's yellow bar (MiB).
+`{Cp}`   | Cached memory, similar to htop's yellow bar (%).
+`{Cpi}`  | Cached memory, similar to htop's yellow bar (%) as integer.
+`{Bg}`   | Buffers, similar to htop's blue bar (GiB).
+`{Bm}`   | Buffers, similar to htop's blue bar (MiB).
+`{Bp}`   | Buffers, similar to htop's blue bar (%).
+`{Bpi}`  | Buffers, similar to htop's blue bar (%) as integer.
+`{STg}`  | Swap total (GiB).
+`{STm}`  | Swap total (MiB).
+`{SFg}`  | Swap free (GiB).
+`{SFm}`  | Swap free (MiB).
+`{SFp}`  | Swap free (%).
+`{SFpi}` | Swap free (%) as integer.
+`{SUg}`  | Swap used (GiB).
+`{SUm}`  | Swap used (MiB).
+`{SUp}`  | Swap used (%).
+`{SUpi}` | Swap used (%) as integer.
+
 
 ## Music
 
-Creates a block which can display the current song title and artist, in a fixed width marquee fashion. It uses dbus signaling to fetch new tracks, so no periodic updates are needed. It supports all Players that implement the [MediaPlayer2 Interface](https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html). This includes spotify, vlc and many more. Also provides buttons for play/pause, previous and next title.
+Creates a block which can display the current song title and artist, in a fixed width marquee fashion. Also provides buttons for play/pause, previous and next title.
+
+Supports all music players that implement the [MediaPlayer2 Interface](https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html). This includes spotify, vlc and many more. 
 
 ### Examples
 
@@ -338,6 +379,40 @@ Key | Values | Required | Default
 `graph_down` | Display a bar graph for download speed. | No | `false`
 `interval` | Update interval, in seconds. | No | `1`
 
+## Nvidia Gpu
+
+Proprietary nvidia driver required.
+
+Creates a block which displays the Nvidia GPU utilization, temperature, used and total memory, fan speed, gpu clocks. You can set gpu label, that displayed by default.
+
+Clicking the left button on the icon changes the output of the label to the output of the gpu name. Same with memory: used/total. 
+
+Clicking the left button on the fans turns on the mode of changing the speed of the fans using the wheel. Press again to turn off the mode. For this opportunity you need nvidia-settings!
+
+### Examples
+
+```toml
+[[block]]
+block = "nvidia_gpu"
+label = "GT 1030"
+show_memory = false
+show_clocks = true
+interval = 1
+```
+
+### Options
+
+Key | Values | Required | Default
+----|--------|----------|--------
+`gpu_id` | GPU id in system | No | 0
+`label` | Display custom gpu label | No | ""
+`interval` | Update interval, in seconds. | No | `1`
+`show_utilization` | Display gpu utilization. In percents. | No | `true`
+`show_memory` | Display memory information. | No | `true`
+`show_temperature` | Display gpu temperature. | No | `true`
+`show_fan_speed` | Display fan speed. | No | `false`
+`show_clocks` | Display gpu clocks. | No | `false`
+
 ## Pacman
 
 Creates a block which displays the pending updates available on pacman.
@@ -362,7 +437,7 @@ Key | Values | Required | Default
 
 Creates a block which displays the volume level (according to ALSA). Right click to toggle mute, scroll to adjust volume.
 
-The display is updated when ALSA detects changes, so there is no need to set an update interval.
+Requires `alsa-utils`.
 
 ### Examples
 
@@ -405,6 +480,8 @@ Key | Values | Required | Default
 
 Creates a block which displays the system temperature, based on lm_sensors' `sensors` output. The block is collapsed by default, and can be expanded by clicking, showing max and avg temperature. When collapsed, the color of the temperature block gives a quick indication as to the temperature (Critical when maxtemp > 80°, Warning when > 60°). Currently, you can only adjust these thresholds in source code. **Depends on lm_sensors being installed and configured!**
 
+Requires `lm_sensors` and appropriate kernel modules for your hardware.
+
 ### Examples
 
 ```toml
@@ -412,6 +489,7 @@ Creates a block which displays the system temperature, based on lm_sensors' `sen
 block = "temperature"
 collapsed = false
 interval = 10
+format = "{min}° min, {max}° max, {average}° avg"
 ```
 
 ### Options
@@ -431,6 +509,7 @@ Creates a block which display the current time.
 [[block]]
 block = "time"
 format = "%a %d/%m %R"
+timezone = "US/Pacific"
 interval = 60
 ```
 
@@ -441,6 +520,7 @@ Key | Values | Required | Default
 `format` | Format string. See the [chrono docs](https://docs.rs/chrono/0.3.0/chrono/format/strftime/index.html#specifiers) for all options. | No | `"%a %d/%m %R"`
 `on_click` | Shell command to run when the sound block is clicked. | No | None
 `interval` | Update interval, in seconds. | No | 5
+`timezone` | A timezone specifier (e.g. "Europe/Lisbon") | No | Local timezone
 
 ## Toggle
 
@@ -516,6 +596,20 @@ Key | Value
 `{temp}` | Temperature.
 `{weather}` | Textual description of the weather, e.g. "Raining".
 `{wind}` | Wind speed.
+
+## Uptime
+Creates a block which displays system uptime. The block will always display the 2 biggest units, so minutes and seconds, or hours and minutes or days and hours or weeks and days.
+
+### Examples
+
+```toml
+[[block]]
+block = "uptime"
+```
+
+### Options
+
+None
 
 ## Xrandr
 

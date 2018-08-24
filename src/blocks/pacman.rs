@@ -13,13 +13,13 @@ use config::Config;
 use de::deserialize_duration;
 use errors::*;
 use input::{I3BarEvent, MouseButton};
-use widgets::text::TextWidget;
+use widgets::button::ButtonWidget;
 use widget::{I3BarWidget, State};
 
 use uuid::Uuid;
 
 pub struct Pacman {
-    output: TextWidget,
+    output: ButtonWidget,
     id: String,
     update_interval: Duration,
 }
@@ -45,7 +45,7 @@ impl ConfigBlock for Pacman {
         Ok(Pacman {
             id: Uuid::new_v4().simple().to_string(),
             update_interval: block_config.interval,
-            output: TextWidget::new(config).with_icon("update"),
+            output: ButtonWidget::new(config, "pacman").with_icon("update"),
         })
     }
 }
@@ -120,16 +120,18 @@ fn get_update_count() -> Result<usize> {
     Ok(
         String::from_utf8(
             Command::new("sh")
+                .env("LC_ALL", "C")
                 .args(&[
                     "-c",
-                    &format!("fakeroot pacman -Su -p --dbpath \"{}\"", updates_db),
+                    &format!("fakeroot pacman -Qu --dbpath \"{}\"", updates_db),
                 ])
                 .output()
                 .block_error("pacman", "There was a problem running the pacman commands")?
                 .stdout,
         ).block_error("pacman", "there was a problem parsing the output")?
             .lines()
-            .count() - 1,
+            .filter(|line| !line.contains("[ignored]"))
+            .count(),
     )
 }
 
